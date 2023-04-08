@@ -13,14 +13,10 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
 
-//local storage using array
-// const items = [];
-// const workItems = [];
-
-
 
 // mongoDB code collections
-mongoose.connect("mongodb://localhost:27017/todolistDB")
+//mongoose.connect("mongodb://localhost:27017/")
+mongoose.connect("mongodb+srv://bidursil:bidursilpass@cluster0.2yc0kyg.mongodb.net/todolistDB")
 const itemSchema = new mongoose.Schema({
   name : {
     type : String,
@@ -37,6 +33,11 @@ const item2 = new Item({
 const item3 = new Item({
   name : "Complete Dummy Project"
 }) 
+
+
+
+
+
 
 // function insert(value){
 //   let temp = new Item({name: value});
@@ -70,23 +71,33 @@ const ListSchema = new mongoose.Schema({
 const List = mongoose.model("list",ListSchema)
 
 const defaultItems = [item1 , item2,item3];
-const day = date.getDate();
+
+
+
+const day = date.getDay();
+
+
+
+
 
 //Route Methods
 app.get("/", function(req, res) {
   Item.find({}).then(result=>{
     if(result.length === 0 ){
       Item.insertMany(defaultItems).then(resu=>{
-        console.log("Insertion Done")
-        
+        // console.log("Insertion Done")
       })
       res.redirect("/");
     }else{
+      // console.log(day)
       res.render("list", {listTitle: day, newListItems: result});
     }
   })
 
 });
+
+
+
 
 app.post("/", function(req, res){
   const item = req.body.newItem;
@@ -95,8 +106,9 @@ app.post("/", function(req, res){
   if (listName === day){
     temp.save().then(result=>{
       console.log("saved");
+      res.redirect("/");
     })
-    res.redirect("/")
+    
   }else{
     List.findOne({name: listName}).then(result=>{
       result.items.push(temp);
@@ -107,48 +119,38 @@ app.post("/", function(req, res){
   
 });
 
-// app.get("/work", function(req,res){
-//   Item.find({},{_id:0, name:1}).then(result=>{
-//     res.render("list", {listTitle: "Work List", newListItems: result});
-//   })
-// });
+
+
 
 app.post("/delete" , function(req,res){
   let checkedItem = req.body.checkbox;
-  let arrItem = checkedItem.split(",") 
-  // console.log(arrItem)
+  let arrItem = checkedItem.split(","); 
   if(arrItem[0] === day){
-    Item.findByIdAndRemove({_id: arrItem}).then(result => {
-      console.log("Deleted One Item of id "+arrItem)
+    console.log(arrItem[1]);
+    Item.findByIdAndRemove({_id: arrItem[1]}).then(result => {
+      console.log("Deleted One Item of id "+arrItem);
+      res.redirect("/");
     })
-    res.redirect("/");
+
   }else{
     List.findOneAndUpdate({name:arrItem[0]} , {$pull:{items: {_id: arrItem[1]}}}).then(
       result=>{
         console.log("Doen delete");
+        res.redirect("/"+arrItem[0]);
       })
-    // List.findOne({name: arrItem[0]}).then(result=>{
-    //   List.findByIdAndRemove({_id: arrItem[1]}).then(result => {
-    //     console.log("Deleted One Item of id "+arrItem[1])
-    //   })
-    // })
-    res.redirect("/"+arrItem[0]);
   }
-  
-  // console.log(checkedItem);
 })
+
+
 
 //custom Route Method
 app.get("/:customListName" , function(req , res){
   const customList = _.capitalize(req.params.customListName);
-  // const customList = customName.charAt(0).toUpperCase() + customName.slice(1);
   List.findOne({name: customList}).then(result=>{
     if(result){
-      console.log("Exist")
-      res.render("list", {listTitle: result.name , newListItems : result.items})
+      console.log("Exist");
+      res.render("list", {listTitle: result.name , newListItems : result.items});
     }else{
-      //List Already Exists
-      // console.log("Doesnt Exist")
       const list = new List({
         name: customList,
         items: defaultItems
@@ -161,8 +163,6 @@ app.get("/:customListName" , function(req , res){
   })
   
 })
-
-app.post("/:customListName")
 
 
 
